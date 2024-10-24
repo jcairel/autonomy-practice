@@ -91,6 +91,8 @@ void robot::show(){
 float run(std::vector<float> params, float radius, bool printflag=false){
     robot myRobot;
     myRobot.set(0.0, radius, M_PI / 2.0);
+    // 5 degree steering bias
+    myRobot.set_steering_drift(5.0 * (M_PI / 180.0));
     double speed = 1.0;
     double err = 0.0;
     int N = 200;
@@ -115,9 +117,43 @@ float run(std::vector<float> params, float radius, bool printflag=false){
     }
     return err / float(N);
 }
+// Function to search for optimal PID parameters
+std::vector<float> twiddle(float radius, float tol=0.00002){
+    std::vector<float> p = {0.0, 0.0, 0.0};
+    std::vector<float> dp = {1.0, 1.0, 1.0};
+
+    float bestErr = run(p, radius);
+    while ( std::accumulate(dp.begin(), dp.end(), 0) > tol){
+        for (int i = 0; i < p.size(); i++){
+            p[i] += dp[i];
+            float err = run(p, radius);
+            if (err < bestErr){
+                bestErr = err;
+                dp[i] *= 1.1;
+                continue;
+            }
+            p[i] -= 2.0 * dp[i];
+            err = run(p, radius);
+            if (err < bestErr){
+                bestErr = err;
+                dp[i] *= 1.1;
+                continue;
+            }
+            p[i] += dp[i];
+            dp[i] *= 0.9;
+        }
+    }
+    for ( float i : p){
+        printf("%f ", i); 
+    }
+    printf("\n");
+    return p;
+}
+
 int main(){
     float radius = 25.0;
-    std::vector<float> params = {10.0, 15.0, 0.0};
+    std::vector<float> params = {10.0, 15.0, 0.4};
+    params = twiddle(radius);
     float err = run(params, radius, true);
     printf("\nerror -> %.5f\n", err);
     return 0;
