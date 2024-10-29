@@ -105,8 +105,8 @@ std::vector<float> robot::sense(bool add_noise){
     for (std::vector<float> landmark : landmarks){
         float dx =  landmark[1] - x;
         float dy = landmark[0] - y;
-        float res = fmod(atan2(dy, dx) - orientation, 2.0 * M_PI);
-        //printf("res: %.5f\n", res);
+        float res = std::fmod(std::atan2(dy, dx) - orientation, 2.0 * M_PI);
+        if (res < 0) res += 2.0 * M_PI;
         if (add_noise){
             std::normal_distribution<double> dist(0, bearing_noise);
             res += dist(generator);
@@ -203,7 +203,7 @@ int main(){
                {0.194460, 5.660382, 4.761072, 2.471682},
                {5.717342, 4.736780, 3.909599, 2.342536}};
     std::vector<float> position = particle_filter(motions, measurements);
-    //printf("[x=%.5f y=%.5f orientation=%.5f]\n", position[0], position[1], position[2]);
+    printf("[x=%.5f y=%.5f orientation=%.5f]\n", position[0], position[1], position[2]);
     //printf("Ground Truth: [x=%.5f y=%.5f orientation=%.5f]\n", );
     robot* myRobot = new robot();
     myRobot->set_noise(bearing_noise, steering_noise, distance_noise);
@@ -212,4 +212,7 @@ int main(){
     std::vector<float> last = myRobot->sense(false);
     printf("{%.5f, %.5f, %.5f, %.5f}", last[0], last[1], last[2], last[3]);
     
+
+    // TODO: Change fmod so it stays in range[0, 2pi] 
+    // right now can be negative number and is throwing things off
 }
