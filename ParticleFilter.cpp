@@ -4,9 +4,9 @@
 
 
 float max_steering_angle = M_PI / 4.0;
-float bearing_noise = 0.1; 
-float steering_noise = 0.1; 
-float distance_noise = 5.0; 
+float g_bearing_noise = 0.1; //0.1; 
+float g_steering_noise = 0.1; 
+float g_distance_noise = 5.0; 
 
 float world_size = 100.0; // world is NOT cyclic. Robot is allowed to travel "out of bounds"
 std::vector<std::vector<float>> landmarks = {{0.0, 100.0}, {0.0, 0.0}, {100.0, 0.0}, {100.0, 100.0}};
@@ -45,6 +45,7 @@ void robot::set(float new_x, float new_y, float new_orientation){
     x = new_x;
     y = new_y;
     orientation = fmod(new_orientation, 2.0 * M_PI);
+    if (orientation < 0) orientation += 2.0 * M_PI;
 }
 
 void robot::set_noise(float new_b_noise, float new_s_noise, float new_d_noise){
@@ -56,38 +57,41 @@ void robot::set_noise(float new_b_noise, float new_s_noise, float new_d_noise){
 
 float robot::measurement_prob(std::vector<float> measurements){
     std::vector<float> predicted_measuments = sense(false);
-    double error = 1.0;
+    long double error = 1.0;
     for (int i = 0; i < measurements.size(); i++){
         float error_bearing = fabs(measurements[i] - predicted_measuments[i]);
-        error_bearing = fmod(error_bearing + M_PI, (2.0 * M_PI)) - M_PI;
+        error_bearing = fmod(error_bearing + M_PI, (2.0 * M_PI));
+        if (error_bearing < 0) error_bearing += 2.0 * M_PI;
+        error_bearing -=  M_PI;
+        //printf("error: %.5lf \n", error_bearing);
         // Update Gaussian
-        long double temp = (-1.0 * std::pow(error_bearing, 2.0) / std::pow(bearing_noise, 2.0) / 2.0);
-        error = error * (std::exp(temp) / 
-            std::sqrt(2.0 * M_PI * std::pow(bearing_noise, 2.0)));
-        //printf("eror: %.5lf \n", temp);            
+        long double temp = (- std::pow(error_bearing, 2.0) / std::pow(bearing_noise, 2.0) / 2.0);
+        error = error * (std::exp(temp) / std::sqrt(2.0 * M_PI * std::pow(bearing_noise, 2.0)));
+        printf("temp: %.5lf \n", temp);
+        
     }
-    
     return error;
 }
 
 void robot::move(std::vector<float> movement){
-    float steering = movement[0];
     float distance = movement[1];
-
+    float steering = movement[0];
+    if (steering > max_steering_angle) steering = max_steering_angle;
+    if (steering < -max_steering_angle) steering = -max_steering_angle;
     // Apply noise and drift to movement
     std::normal_distribution<double> dist(steering, steering_noise);
     double steering2 = dist(generator);
-    steering2 += steering_noise;
     dist = std::normal_distribution<double>(distance, distance_noise);
     double distance2 = dist(generator);
     if (distance < 0.0) distance = 0.0;
 
-    float turn = tan(steering2) * distance2 / length;
+    float turn = tan(steering2) * (distance2 / length);
     if (fabs(turn) < 0.001){
         // Aproximate as straight line motion
         x += (distance2 * cos(orientation));
         y += (distance2 * sin(orientation));
         orientation = fmod(orientation + turn, 2.0 * M_PI);
+        if (orientation < 0) orientation += 2.0 * M_PI;
     } 
     else{
         // Aproximate bicycle model for motion
@@ -95,6 +99,7 @@ void robot::move(std::vector<float> movement){
         float cx = x - (sin(orientation) * radius);
         float cy = y + (cos(orientation) * radius);
         orientation = fmod(orientation + turn, 2.0 * M_PI);
+        if (orientation < 0) orientation += 2.0 * M_PI;
         x = cx + (sin(orientation) * radius);
         y = cy - (cos(orientation) * radius);
     }
@@ -123,8 +128,9 @@ std::vector<float> get_position(std::vector<robot*> p){
         y += p[i]->y;
         // Orientation is tricky because it is cyclic. By normalizing
         // around the first particle we are somewhat more robust to the 0=2pi problem
-        orientation += (fmod(p[i]->orientation - p[0]->orientation + M_PI, 2.0 * M_PI) 
-                        + p[0]->orientation - M_PI);
+        float temp = fmod(p[i]->orientation - p[0]->orientation + M_PI, 2.0 * M_PI);
+        if (temp < 0) temp += 2.0 * M_PI;
+        orientation += temp + p[0]->orientation - M_PI;
     }
     return {x / float(p.size()), y / float(p.size()), orientation / float(p.size())};
 }
@@ -145,7 +151,9 @@ bool check_output(robot* finalRobot, std::vector<float> estimated_position){
     float error_x = fabs(finalRobot->x - estimated_position[0]);
     float error_y = fabs(finalRobot->y - estimated_position[1]);
     float error_orientation = fabs(finalRobot->orientation - estimated_position[2]);
-    error_orientation = fmod(error_orientation + M_PI, 2.0 * M_PI) - M_PI;
+    error_orientation = fmod(error_orientation + M_PI, 2.0 * M_PI);
+    if (error_orientation < 0) error_orientation += 2.0 * M_PI;
+    error_orientation -= M_PI;
     return error_x < tolerance_xy && error_y < tolerance_xy && error_orientation < tolerance_orientation;
 }
 
@@ -154,7 +162,7 @@ std::vector<float> particle_filter(std::vector<std::vector<float>> movements, st
     robot* temp;
     for (int i = 0; i < N; i++){
         temp = new robot();
-        temp->set_noise(bearing_noise, steering_noise, distance_noise);
+        temp->set_noise(g_bearing_noise, g_steering_noise, g_distance_noise);
         p.push_back(temp);
     }
 
@@ -206,13 +214,20 @@ int main(){
     printf("[x=%.5f y=%.5f orientation=%.5f]\n", position[0], position[1], position[2]);
     //printf("Ground Truth: [x=%.5f y=%.5f orientation=%.5f]\n", );
     robot* myRobot = new robot();
-    myRobot->set_noise(bearing_noise, steering_noise, distance_noise);
-    myRobot->set(93.476, 75.186, 5.2664);
-    std::vector<robot*> test = {myRobot};
+    myRobot->set_noise(g_bearing_noise, g_steering_noise, g_distance_noise);
+    myRobot->set(50, 50, 0);
+    std::vector<std::vector<float>> movements = {{0.0, 5.0}, {0.0, 5.0}, {M_PI / 5.0, 5.0}};
+     std::vector<std::vector<float>> readings = {{5.5616429995404415, 3.931720028845822, 1.9150156895937354, 0.5694135271324247}, 
+            {5.6734126435888195, 3.8607555103344797, 1.8494605136446933, 0.7382421732827417}, 
+            {5.590379482816912, 3.771688007360004, 1.6646113795985018, 0.4007004460882639}};
+    for (int i = 0; i < movements.size(); i++){
+        myRobot->move(movements[i]);\
+        myRobot->measurement_prob(readings[i]);
+    }
+    printf("x=%.5f, y=%.5f, orient=%.5f\n", myRobot->x, myRobot->y, myRobot->orientation);
     std::vector<float> last = myRobot->sense(false);
-    printf("{%.5f, %.5f, %.5f, %.5f}", last[0], last[1], last[2], last[3]);
+    //printf("{%.5f, %.5f, %.5f, %.5f}", last[0], last[1], last[2], last[3]);
     
-
-    // TODO: Change fmod so it stays in range[0, 2pi] 
-    // right now can be negative number and is throwing things off
+//TODO: measurement_prob has some issue with error always being zero
+// something to do with exp()
 }
