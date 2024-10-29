@@ -64,7 +64,7 @@ void robot::move(float steering, float distance, float tolerance, float max_stee
         y = cy - (cos(orientation) * radius);
     }
 }
-
+// Calculate CrossTrack Error
 float robot::cte(float radius){
     float cte;
     // On curves
@@ -74,7 +74,7 @@ float robot::cte(float radius){
     else if (x > 3.0 * radius){
         cte = sqrt(pow((x - 3.0 * radius), 2.0) + pow((y - radius), 2.0)) - radius;
     }
-    // On straightaway
+    // On straightaways
     else if (y > radius){
         cte = y - 2.0 * radius;
     }
@@ -93,6 +93,7 @@ float run(std::vector<float> params, float radius, bool printflag=false){
     myRobot.set(0.0, radius, M_PI / 2.0);
     // 5 degree steering bias
     myRobot.set_steering_drift(5.0 * (M_PI / 180.0));
+    myRobot.set_noise(0.5 * (M_PI / 180.0), 0.1);
     double speed = 1.0;
     double err = 0.0;
     int N = 200;
@@ -152,7 +153,7 @@ std::vector<float> twiddle(float radius, float tol=0.00002){
 
 int main(){
     float radius = 25.0;
-    std::vector<float> params = {10.0, 15.0, 0.4};
+    std::vector<float> params = {10.0, 15.0, 0.0};
     params = twiddle(radius);
     float err = run(params, radius, true);
     printf("\nerror -> %.5f\n", err);
