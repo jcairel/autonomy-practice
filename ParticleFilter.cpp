@@ -59,17 +59,17 @@ float robot::measurement_prob(std::vector<float> measurements){
     std::vector<float> predicted_measuments = sense(false);
     long double error = 1.0;
     for (int i = 0; i < measurements.size(); i++){
+        printf("measurements: %.5f   predicted: %.5f \n", measurements[i], predicted_measuments[i]);
         float error_bearing = fabs(measurements[i] - predicted_measuments[i]);
         error_bearing = fmod(error_bearing + M_PI, (2.0 * M_PI));
-        if (error_bearing < 0) error_bearing += 2.0 * M_PI;
+        if (error_bearing < 0) {error_bearing += 2.0 * M_PI;}
         error_bearing -=  M_PI;
         //printf("error: %.5lf \n", error_bearing);
         // Update Gaussian
         long double temp = (- std::pow(error_bearing, 2.0) / std::pow(bearing_noise, 2.0) / 2.0);
         error = error * (std::exp(temp) / std::sqrt(2.0 * M_PI * std::pow(bearing_noise, 2.0)));
-        printf("temp: %.5lf \n", temp);
-        
     }
+    printf("temp: %.5lf \n", error);
     return error;
 }
 
@@ -210,8 +210,8 @@ int main(){
                {0.856150, 0.214590, 5.651497, 1.062401},
                {0.194460, 5.660382, 4.761072, 2.471682},
                {5.717342, 4.736780, 3.909599, 2.342536}};
-    std::vector<float> position = particle_filter(motions, measurements);
-    printf("[x=%.5f y=%.5f orientation=%.5f]\n", position[0], position[1], position[2]);
+    //std::vector<float> position = particle_filter(motions, measurements);
+    //printf("[x=%.5f y=%.5f orientation=%.5f]\n", position[0], position[1], position[2]);
     //printf("Ground Truth: [x=%.5f y=%.5f orientation=%.5f]\n", );
     robot* myRobot = new robot();
     myRobot->set_noise(g_bearing_noise, g_steering_noise, g_distance_noise);
@@ -224,7 +224,7 @@ int main(){
         myRobot->move(movements[i]);\
         myRobot->measurement_prob(readings[i]);
     }
-    printf("x=%.5f, y=%.5f, orient=%.5f\n", myRobot->x, myRobot->y, myRobot->orientation);
+    //printf("x=%.5f, y=%.5f, orient=%.5f\n", myRobot->x, myRobot->y, myRobot->orientation);
     std::vector<float> last = myRobot->sense(false);
     //printf("{%.5f, %.5f, %.5f, %.5f}", last[0], last[1], last[2], last[3]);
     

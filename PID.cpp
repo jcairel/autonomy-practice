@@ -53,6 +53,7 @@ void robot::move(float steering, float distance, float tolerance, float max_stee
         x += (distance2 * cos(orientation));
         y += (distance2 * sin(orientation));
         orientation = fmod((orientation + turn), (2.0 * M_PI));
+        if (orientation < 0) orientation += 2.0 * M_PI;
     } 
     else{
         // Aproximate bicycle model for motion
@@ -60,6 +61,7 @@ void robot::move(float steering, float distance, float tolerance, float max_stee
         float cx = x - (sin(orientation) * radius);
         float cy = y + (cos(orientation) * radius);
         orientation = fmod((orientation + turn), (2.0 * M_PI));
+        if (orientation < 0) orientation += 2.0 * M_PI;
         x = cx + (sin(orientation) * radius);
         y = cy - (cos(orientation) * radius);
     }
