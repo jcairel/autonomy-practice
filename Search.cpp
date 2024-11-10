@@ -26,6 +26,15 @@ bool validSpace(int x, int y, int n, int m){
     return (x >= 0 && x < n && y >= 0 && y < m);
 }
 
+void show(int grid[5][5]){
+    for (int i = 0; i < 5; i++){
+        for (int j = 0; j < 5; j++){
+            printf("%d ", grid[i][j]);
+        }
+        printf("\n");
+    }
+}
+
 std::vector<std::pair<int, int>> search(){
     int n = 5;
     int m = 5;
@@ -46,6 +55,19 @@ std::vector<std::pair<int, int>> search(){
     int start[2] = {0, 0};
     int goal[2] = {n - 1, m - 1};
     int moves[4][2] = {{-1, 0}, {1,0}, {0, -1}, {0, 1}};
+
+    //std::random_device rd;
+    std::mt19937 gen;
+    std::uniform_real_distribution<> dist(0.0, 1.0);
+    for (int i = 0; i < n; i++){
+        for (int j = 0; j < m; j++){
+            bool blocked = dist(gen) < 0.3;
+            grid[i][j] = blocked;
+        }
+    }
+    grid[n - 1][m - 1] = 0;
+    grid[0][0] = 0;
+    show(grid);
     
 
     std::priority_queue<Node*, std::vector<Node*>, Compare> pq;
@@ -81,14 +103,6 @@ std::vector<std::pair<int, int>> search(){
         }
     }
     return {};
-}
-void show(int grid[5][5]){
-    for (int i = 0; i < 5; i++){
-        for (int j = 0; j < 5; j++){
-            printf("%d ", grid[i][j]);
-        }
-        printf("\n");
-    }
 }
 
 int main(){
