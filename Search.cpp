@@ -35,7 +35,7 @@ void show(int** grid, int n, int m){
     }
 }
 
-std::vector<std::pair<int, int>> search(int** grid, int start[2], int goal[2], int n, int m){
+std::vector<std::vector<int>> search(int** grid, int start[2], int goal[2], int n, int m){
     
     int moves[4][2] = {{-1, 0}, {1,0}, {0, -1}, {0, 1}};
 
@@ -60,7 +60,7 @@ std::vector<std::pair<int, int>> search(int** grid, int start[2], int goal[2], i
 
         if (current->x == goal[0] && current->y == goal[1]){
             // Recreate path to goal
-            std::vector<std::pair<int, int>> path;
+            std::vector<std::vector<int>> path;
             while (current){
                 path.push_back({current->x, current->y});
                 current = current->parent;
@@ -104,13 +104,13 @@ int main(){
     show(grid, n, m);
 
 
-    std::vector<std::pair<int, int>> path = search(grid, start, goal, n, m);
+    std::vector<std::vector<int>> path = search(grid, start, goal, n, m);
     if (path.size() == 0){
         printf("No path found\n");
     }
 
     for (int i = 0; i < path.size(); i++){
-        printf("[%d, %d]\n", path[i].first, path[i].second);
+        printf("[%d, %d]\n", path[i][0], path[i][1]);
     }
 
     return 0;
