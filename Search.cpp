@@ -26,52 +26,30 @@ bool validSpace(int x, int y, int n, int m){
     return (x >= 0 && x < n && y >= 0 && y < m);
 }
 
-void show(int grid[5][5]){
-    for (int i = 0; i < 5; i++){
-        for (int j = 0; j < 5; j++){
+void show(int** grid, int n, int m){
+    for (int i = 0; i < n; i++){
+        for (int j = 0; j < m; j++){
             printf("%d ", grid[i][j]);
         }
         printf("\n");
     }
 }
 
-std::vector<std::pair<int, int>> search(){
-    int n = 5;
-    int m = 5;
-    int grid[5][5] = {
-        {0, 0, 0, 0, 0},
-        {0, 1, 1, 1, 0},
-        {0, 1, 0, 0, 0},
-        {0, 0, 1, 0, 1},
-        {1, 1, 0, 0, 0}
-    };
-    int visited[5][5] ={
-        {0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0}
-    };
-    int start[2] = {0, 0};
-    int goal[2] = {n - 1, m - 1};
+std::vector<std::pair<int, int>> search(int** grid, int start[2], int goal[2], int n, int m){
+    
     int moves[4][2] = {{-1, 0}, {1,0}, {0, -1}, {0, 1}};
 
-    //std::random_device rd;
+    int** visited = new int*[n];
     std::mt19937 gen;
     std::uniform_real_distribution<> dist(0.0, 1.0);
     for (int i = 0; i < n; i++){
+        visited[i] = new int[m];
         for (int j = 0; j < m; j++){
-            bool blocked = dist(gen) < 0.3;
-            grid[i][j] = blocked;
+            visited[i][j] = 0;
         }
     }
-    grid[n - 1][m - 1] = 0;
-    grid[0][0] = 0;
-    show(grid);
     
-
     std::priority_queue<Node*, std::vector<Node*>, Compare> pq;
-
     Node* startNode = new Node{start[0], start[1], 0, heuristic(start[0], start[1], goal[0], goal[1]), nullptr}; 
 
     pq.push(startNode);
@@ -106,7 +84,27 @@ std::vector<std::pair<int, int>> search(){
 }
 
 int main(){
-    std::vector<std::pair<int, int>> path = search();
+    int n = 7;
+    int m = 4;
+    int start[2] = {0, 0};
+    int goal[2] = {n - 1, m - 1};
+    int** grid = new int*[n];
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dist(0.0, 1.0);
+    for (int i = 0; i < n; i++){
+        grid[i] = new int[m];
+        for (int j = 0; j < m; j++){
+            bool blocked = dist(gen) < 0.3; // 30% chance of space being blocked
+            grid[i][j] = blocked;
+        }
+    }
+    grid[start[0]][start[1]] = 0;
+    grid[goal[0]][goal[1]] = 0;
+    show(grid, n, m);
+
+
+    std::vector<std::pair<int, int>> path = search(grid, start, goal, n, m);
     if (path.size() == 0){
         printf("No path found\n");
     }
