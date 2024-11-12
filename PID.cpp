@@ -121,8 +121,8 @@ float run(std::vector<float> params, float radius, bool printflag=false){
     return err / float(N);
 }
 // Function to search for optimal PID parameters
-std::vector<float> twiddle(float radius, float tol=0.00002){
-    std::vector<float> p = {0.0, 0.0, 0.0};
+std::vector<float> twiddle(float radius, float tol=0.00001){
+    std::vector<float> p = {1.0, 0.0, 0.0};
     std::vector<float> dp = {1.0, 1.0, 1.0};
 
     float bestErr = run(p, radius);
