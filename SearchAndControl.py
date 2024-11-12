@@ -231,7 +231,7 @@ class Particle:
         self.data = p2
 
 
-def run(grid, start, goal, spath, params, timeout=1000, print_flag=False):
+def run(grid, start, goal, spath, params, timeout=1000, print_flag=False, get_err=False):
     myRobot = Robot()
     myRobot.set(start[0], start[1], 0)
     # 2 degree steering bias
@@ -250,7 +250,6 @@ def run(grid, start, goal, spath, params, timeout=1000, print_flag=False):
 
         estimate = filter.get_position()
         #estimate = [myRobot.x, myRobot.y]
-
         diff_crosstrack_error = -crosstrack_error
         # Determine line segments
         dx = spath[index + 1][0] - spath[index][0]
@@ -261,7 +260,7 @@ def run(grid, start, goal, spath, params, timeout=1000, print_flag=False):
         u = ((rx * dx) + (ry * dy)) / ((dx * dx) + (dy * dy));
         crosstrack_error = ((ry * dx) - (rx * dy)) / ((dx * dx) + (dy * dy))
         # Moved past current path segment
-        if u > 1.0:
+        if u > 1.0 and (index < len(spath) - 1):
             index += 1
         diff_crosstrack_error += crosstrack_error
         int_crosstrack_error += crosstrack_error
@@ -276,12 +275,37 @@ def run(grid, start, goal, spath, params, timeout=1000, print_flag=False):
 
         err += crosstrack_error ** 2
         N += 1
-        if myRobot.check_collision(grid):
+        if myRobot.check_collision(grid) and not get_err:
             print("### Collision ###")
         if print_flag:
             print(myRobot)
-
+    if get_err:
+        return err
     print(f"Reached goal: {myRobot.check_goal(goal)}, # Collisions: {myRobot.num_collisions}, # steps: {myRobot.num_steps}")
+
+
+def twiddle(grid, start, goal, spath, tolerance=0.00002):
+    p = [1.0, 0.0, 0.0]
+    dp = [1.0, 1.0, 1.0]
+    best_err = run(grid, start, goal, spath, p, get_err=True)
+    while sum(dp) > tolerance:
+        for i in range(len(p)):
+            p[i] += dp[i]
+            err = run(grid, start, goal, spath, p, get_err=True)
+
+            if err < best_err:
+                best_err = err
+                dp[i] *= 1.1
+                continue
+            p[i] -= 2.0 * dp[i]
+            err = run(grid, start, goal, spath, p, get_err=True)
+            if err < best_err:
+                best_err = err
+                dp[i] *= 1.1
+                continue
+            p[i] += dp[i]
+            dp[i] *= 0.9
+    return p
 
 
 if __name__ == '__main__':
@@ -309,7 +333,10 @@ if __name__ == '__main__':
         print("No path found")
         exit()
     spath = smooth(path)
+    #params = twiddle(grid, start, goal, spath)
     params = [2.0, 6.0, 0.0]
+    print("Parameters:", params)
+
     run(grid, start, goal, spath, params)
 
 
