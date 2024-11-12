@@ -40,8 +40,6 @@ std::vector<std::vector<int>> search(int** grid, int start[2], int goal[2], int 
     int moves[4][2] = {{-1, 0}, {1,0}, {0, -1}, {0, 1}};
 
     int** visited = new int*[n];
-    std::mt19937 gen;
-    std::uniform_real_distribution<> dist(0.0, 1.0);
     for (int i = 0; i < n; i++){
         visited[i] = new int[m];
         for (int j = 0; j < m; j++){
