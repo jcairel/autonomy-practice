@@ -6,6 +6,9 @@ Histogram filter inferring an agent's location after movement using environment 
   
 *TODO: Rewrite in C++, maybe make it a 3D space or add multiple sensors
 
+## Search
+A* search with a heuristic of the Manhattan distance to goal space to find the optimal path to a goal state.
+
 ## PID control
 Control steering in a car going around a racetrack, keeping it on track through noise in motion commands and constant drift in steering angle.
 
