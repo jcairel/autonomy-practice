@@ -2,6 +2,7 @@ import random
 import heapq
 import copy
 import math
+import matplotlib.pyplot as plt
 
 class Node:
     def __init__(self, x, y, g, h, parent):
@@ -115,7 +116,7 @@ class Robot:
                         return True
         return False
 
-    def check_goal(self, goal, threshold=1.0):
+    def check_goal(self, goal, threshold=0.2):
         dist = math.sqrt((float(goal[0]) - self.x) ** 2 + (float(goal[1]) - self.y) ** 2)
         return dist < threshold
 
@@ -232,6 +233,8 @@ class Particle:
 
 
 def run(grid, start, goal, spath, params, timeout=1000, print_flag=False, get_err=False):
+    route_x = []
+    route_y = []
     myRobot = Robot()
     myRobot.set(start[0], start[1], 0)
     # 2 degree steering bias
@@ -249,6 +252,9 @@ def run(grid, start, goal, spath, params, timeout=1000, print_flag=False, get_er
     while not myRobot.check_goal(goal) and N < timeout:
 
         estimate = filter.get_position()
+        route_x.append(estimate[0])
+        route_y.append(estimate[1])
+
         #estimate = [myRobot.x, myRobot.y]
         diff_crosstrack_error = -crosstrack_error
         # Determine line segments
@@ -279,9 +285,11 @@ def run(grid, start, goal, spath, params, timeout=1000, print_flag=False, get_er
             print("### Collision ###")
         if print_flag:
             print(myRobot)
+
     if get_err:
         return err
     print(f"Reached goal: {myRobot.check_goal(goal)}, # Collisions: {myRobot.num_collisions}, # steps: {myRobot.num_steps}")
+    return route_x, route_y
 
 
 def twiddle(grid, start, goal, spath, tolerance=0.00002):
@@ -309,12 +317,11 @@ def twiddle(grid, start, goal, spath, tolerance=0.00002):
 
 
 if __name__ == '__main__':
-    n = 5
-    m = 6
+    n = 25
+    m = 30
 
     # 30% chance of obstacle at any space
     grid = [[(1 if random.random() < 0.3 else 0) for col in range(m)] for row in range(n)]
-
     test = [[0, 1, 0, 0, 0, 0],
             [0, 1, 0, 1, 1, 0],
             [0, 1, 0, 1, 0, 0],
@@ -323,10 +330,17 @@ if __name__ == '__main__':
     #grid = test
 
     start = [0, 0]
-    goal = [n - 1, m - 1]
+    goal = [len(grid) - 1, len(grid[0]) - 1]
     grid[start[0]][start[1]] = 0
     grid[goal[0]][goal[1]] = 0
-    show_grid(grid)
+
+    blocked_x = []
+    blocked_y = []
+    for i in range(len(grid)):
+        for j in range(len(grid[0])):
+            if grid[i][j] == 1:
+                blocked_x.append(i)
+                blocked_y.append(j)
 
     path = search(grid, start, goal)
     if not path:
@@ -337,7 +351,18 @@ if __name__ == '__main__':
     params = [2.0, 6.0, 0.0]
     print("Parameters:", params)
 
-    run(grid, start, goal, spath, params)
+    route_x, route_y = run(grid, start, goal, spath, params)
+
+    # Create scatter plot
+    plt.scatter(route_x, route_y, color='blue', label='Robot')
+    plt.scatter(blocked_x, blocked_y, color='red', label='Obstacle')
+    plt.scatter(goal[0], goal[1], color='green', label='Goal')
+    plt.title('Robot route')
+    plt.xlabel('X-axis')
+    plt.ylabel('Y-axis')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
 
 
